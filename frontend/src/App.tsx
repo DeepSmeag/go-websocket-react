@@ -23,6 +23,7 @@ function App() {
     socketRef.current.onclose = () => {
       console.log("Socket closed");
       setConnection("NOT OPEN");
+      socketRef.current = null;
     };
     socketRef.current.onerror = () => {
       console.error("ERROR WITH WEBSOCKET");
