@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -45,17 +46,12 @@ func main() {
 		}
 		defer conn.Close()
 		fmt.Println("Connected new on /ws:", conn.RemoteAddr())
-		for {
-			randInt := strconv.Itoa(rand.IntN(10) + 1)
-			if err := conn.WriteMessage(1, []byte(randInt)); err != nil {
-				log.Println("ERROR WITH WRITING MESSAGE", err)
-				return
-			}
-			time.Sleep(time.Second)
-			if randInt == "10" {
-				break
-			}
-		}
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go handleReading(conn, &wg)
+		go handleWriting(conn, &wg)
+
+		wg.Wait()
 
 	})
 
@@ -64,4 +60,32 @@ func main() {
 	})
 
 	http.ListenAndServe(":8080", nil)
+}
+
+func handleReading(conn *websocket.Conn, wg *sync.WaitGroup) {
+	defer log.Println("Server stopped reader for", conn.RemoteAddr())
+	defer wg.Done()
+	for {
+		msgType, msg, err := conn.ReadMessage()
+		if err != nil {
+			log.Println("Error reading message", err)
+			return
+		}
+		log.Println("Server: received ", msgType, string(msg))
+	}
+}
+func handleWriting(conn *websocket.Conn, wg *sync.WaitGroup) {
+	defer log.Println("Server stopped writer for", conn.RemoteAddr())
+	defer wg.Done()
+	for {
+		randInt := strconv.Itoa(rand.IntN(10) + 1)
+		if err := conn.WriteMessage(1, []byte(randInt)); err != nil {
+			log.Println("ERROR WITH WRITING MESSAGE", err)
+			return
+		}
+		time.Sleep(time.Second)
+		if randInt == "10" {
+			return
+		}
+	}
 }

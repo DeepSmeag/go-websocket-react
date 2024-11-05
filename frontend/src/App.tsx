@@ -7,8 +7,7 @@ function App() {
     Array.from([1, 2, 3, 4])
   );
   const socketRef = useRef<WebSocket | null>(null);
-
-  useEffect(() => {
+  function initSocket() {
     if (socketRef.current != null) {
       console.log("Hey, it's still here");
     }
@@ -28,6 +27,10 @@ function App() {
     socketRef.current.onerror = () => {
       console.error("ERROR WITH WEBSOCKET");
     };
+  }
+
+  useEffect(() => {
+    initSocket();
     return () => {
       if (socketRef.current) {
         socketRef.current.close();
@@ -43,21 +46,32 @@ function App() {
       <p>{numbers.join(" ")}...</p>
       <div className="flex flex-row gap-4 justify-center my-10">
         <ButtonComponent
-          text="Resume"
+          text="Start/Resume"
           onClick={() => {
-            console.log("1");
+            if (socketRef.current) {
+              socketRef.current.send("resume");
+            } else {
+              initSocket();
+            }
           }}
         />
         <ButtonComponent
           text="Pause"
           onClick={() => {
-            console.log("2");
+            if (socketRef.current) {
+              socketRef.current.send("pause");
+            }
           }}
         />
         <ButtonComponent
-          text="Close connection"
+          text="Close connection?"
           onClick={() => {
-            console.log("3");
+            console.log(
+              "Not sure if I can temporarily disable and then reconnect, will check out later; for now just disconnecting"
+            );
+            if (socketRef.current) {
+              socketRef.current.close(1000, "Cause I want to");
+            }
           }}
         />
       </div>
